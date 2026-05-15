@@ -311,8 +311,9 @@ export async function handleToolExecutionStart(
   const args = evt.args;
   const runId = ctx.params.runId;
 
-  // Track start time and args for after_tool_call hook
-  toolStartData.set(buildToolStartKey(runId, toolCallId), { startTime: Date.now(), args });
+  // Track start time and args for after_tool_call hook and supervision views.
+  const startTime = Date.now();
+  toolStartData.set(buildToolStartKey(runId, toolCallId), { startTime, args });
 
   if (toolName === "read") {
     const record = args && typeof args === "object" ? (args as Record<string, unknown>) : {};
@@ -332,6 +333,7 @@ export async function handleToolExecutionStart(
   }
 
   const meta = extendExecMeta(toolName, args, inferToolMetaFromArgs(toolName, args));
+  ctx.state.activeToolCall = { name: toolName, toolCallId, startedAt: startTime, args };
   ctx.state.toolMetaById.set(toolCallId, buildToolCallSummary(toolName, args, meta));
   ctx.log.debug(
     `embedded run tool start: runId=${ctx.params.runId} tool=${toolName} toolCallId=${toolCallId}`,
@@ -441,6 +443,15 @@ export async function handleToolExecutionEnd(
   const callSummary = ctx.state.toolMetaById.get(toolCallId);
   const meta = callSummary?.meta;
   ctx.state.toolMetas.push({ toolName, meta });
+  if (ctx.state.activeToolCall?.toolCallId === toolCallId) {
+    ctx.state.activeToolCall = undefined;
+  }
+  ctx.state.lastSideEffect = {
+    toolName,
+    meta,
+    error: isToolError ? extractToolErrorMessage(sanitizedResult) : undefined,
+    timestamp: Date.now(),
+  };
   ctx.state.toolMetaById.delete(toolCallId);
   ctx.state.toolSummaryById.delete(toolCallId);
   if (isToolError) {

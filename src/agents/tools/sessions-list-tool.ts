@@ -28,6 +28,7 @@ const SessionsListToolSchema = Type.Object({
   limit: Type.Optional(Type.Number({ minimum: 1 })),
   activeMinutes: Type.Optional(Type.Number({ minimum: 1 })),
   messageLimit: Type.Optional(Type.Number({ minimum: 0 })),
+  includeCronRuns: Type.Optional(Type.Boolean()),
 });
 
 export function createSessionsListTool(opts?: {
@@ -85,6 +86,7 @@ export function createSessionsListTool(opts?: {
           includeGlobal: !restrictToSpawned,
           includeUnknown: !restrictToSpawned,
           spawnedBy: restrictToSpawned ? effectiveRequesterKey : undefined,
+          includeCronRuns: params.includeCronRuns === true,
         },
       });
 

@@ -856,6 +856,7 @@ export function listSessionsFromStore(params: {
   const includeUnknown = opts.includeUnknown === true;
   const includeDerivedTitles = opts.includeDerivedTitles === true;
   const includeLastMessage = opts.includeLastMessage === true;
+  const includeCronRuns = opts.includeCronRuns === true;
   const spawnedBy = typeof opts.spawnedBy === "string" ? opts.spawnedBy : "";
   const label = typeof opts.label === "string" ? opts.label.trim() : "";
   const agentId = typeof opts.agentId === "string" ? normalizeAgentId(opts.agentId) : "";
@@ -867,7 +868,7 @@ export function listSessionsFromStore(params: {
 
   let sessions = Object.entries(store)
     .filter(([key]) => {
-      if (isCronRunSessionKey(key)) {
+      if (isCronRunSessionKey(key) && !includeCronRuns) {
         return false;
       }
       if (!includeGlobal && key === "global") {

@@ -109,6 +109,8 @@ import { log } from "../logger.js";
 import { buildModelAliasLines } from "../model.js";
 import {
   clearActiveEmbeddedRun,
+  clearEmbeddedPiRunToolDeny,
+  isEmbeddedPiRunToolsDenied,
   type EmbeddedPiQueueHandle,
   setActiveEmbeddedRun,
 } from "../runs.js";
@@ -2226,6 +2228,8 @@ export async function runEmbeddedAttempt(
         getCompactionCount,
       } = subscription;
 
+      let deniedToolsReason: string | undefined;
+      const runStartedAt = Date.now();
       const queueHandle: EmbeddedPiQueueHandle = {
         queueMessage: async (text: string) => {
           await activeSession.steer(text);
@@ -2233,8 +2237,23 @@ export async function runEmbeddedAttempt(
         isStreaming: () => activeSession.isStreaming,
         isCompacting: () => subscription.isCompacting(),
         abort: abortRun,
+        denyTools: (reason) => {
+          deniedToolsReason = reason ?? "cancelled";
+        },
+        getInfo: () => ({
+          runId: params.runId,
+          sessionKey: params.sessionKey,
+          startedAt: runStartedAt,
+          isStreaming: activeSession.isStreaming,
+          isCompacting: subscription.isCompacting(),
+          activeToolCall: subscription.getActiveToolCall(),
+          lastSideEffect: subscription.getLastSideEffect(),
+        }),
       };
       setActiveEmbeddedRun(params.sessionId, queueHandle, params.sessionKey);
+      if (isEmbeddedPiRunToolsDenied(params.runId)) {
+        deniedToolsReason = "cancelled";
+      }
 
       let abortWarnTimer: NodeJS.Timeout | undefined;
       const isProbeSession = params.sessionId?.startsWith("probe-") ?? false;
@@ -2353,6 +2372,13 @@ export async function runEmbeddedAttempt(
               `hooks: applied prependSystemContext/appendSystemContext (${prependSystemLen}+${appendSystemLen} chars)`,
             );
           }
+        }
+
+        if (deniedToolsReason) {
+          log.warn(
+            `embedded run cancellation requested before prompt: runId=${params.runId} reason=${deniedToolsReason}`,
+          );
+          abortRun(false, deniedToolsReason);
         }
 
         log.debug(`embedded run prompt start: runId=${params.runId} sessionId=${params.sessionId}`);
@@ -2717,6 +2743,7 @@ export async function runEmbeddedAttempt(
           );
         }
         clearActiveEmbeddedRun(params.sessionId, queueHandle, params.sessionKey);
+        clearEmbeddedPiRunToolDeny(params.runId);
         params.abortSignal?.removeEventListener?.("abort", onAbort);
       }
 

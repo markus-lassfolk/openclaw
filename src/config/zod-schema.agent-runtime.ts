@@ -822,6 +822,13 @@ export const ToolsSchema = z
       })
       .strict()
       .optional(),
+    supervision: z
+      .object({
+        enabled: z.boolean().optional(),
+        allowAgents: z.array(z.string()).optional(),
+      })
+      .strict()
+      .optional(),
     elevated: z
       .object({
         enabled: z.boolean().optional(),

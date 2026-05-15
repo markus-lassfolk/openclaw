@@ -21,6 +21,8 @@ export const SessionsListParamsSchema = Type.Object(
     spawnedBy: Type.Optional(NonEmptyString),
     agentId: Type.Optional(NonEmptyString),
     search: Type.Optional(Type.String()),
+    /** Include isolated cron run alias/session keys instead of folding them into their cron job. */
+    includeCronRuns: Type.Optional(Type.Boolean()),
   },
   { additionalProperties: false },
 );

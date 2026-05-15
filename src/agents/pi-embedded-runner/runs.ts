@@ -5,11 +5,25 @@ import {
 } from "../../logging/diagnostic.js";
 import { resolveGlobalSingleton } from "../../shared/global-singleton.js";
 
+export type EmbeddedPiRunInfo = {
+  sessionId: string;
+  sessionKey?: string;
+  runId?: string;
+  startedAt: number;
+  isStreaming: boolean;
+  isCompacting: boolean;
+  activeToolCall?: { name?: string; toolCallId?: string; startedAt?: number; args?: unknown };
+  lastSideEffect?: { toolName?: string; meta?: string; error?: string; timestamp?: number };
+  activeProcessIds?: number[];
+};
+
 type EmbeddedPiQueueHandle = {
   queueMessage: (text: string) => Promise<void>;
   isStreaming: () => boolean;
   isCompacting: () => boolean;
   abort: () => void;
+  getInfo?: () => Partial<Omit<EmbeddedPiRunInfo, "sessionId">>;
+  denyTools?: (reason?: string) => void;
 };
 
 type EmbeddedRunWaiter = {
@@ -26,9 +40,11 @@ const EMBEDDED_RUN_STATE_KEY = Symbol.for("openclaw.embeddedRunState");
 const embeddedRunState = resolveGlobalSingleton(EMBEDDED_RUN_STATE_KEY, () => ({
   activeRuns: new Map<string, EmbeddedPiQueueHandle>(),
   waiters: new Map<string, Set<EmbeddedRunWaiter>>(),
+  deniedRunIds: new Map<string, string | undefined>(),
 }));
 const ACTIVE_EMBEDDED_RUNS = embeddedRunState.activeRuns;
 const EMBEDDED_RUN_WAITERS = embeddedRunState.waiters;
+const DENIED_EMBEDDED_RUN_IDS = embeddedRunState.deniedRunIds;
 
 export function queueEmbeddedPiMessage(sessionId: string, text: string): boolean {
   const handle = ACTIVE_EMBEDDED_RUNS.get(sessionId);
@@ -129,6 +145,46 @@ export function isEmbeddedPiRunStreaming(sessionId: string): boolean {
     return false;
   }
   return handle.isStreaming();
+}
+
+export function getActiveEmbeddedRunInfos(): EmbeddedPiRunInfo[] {
+  return [...ACTIVE_EMBEDDED_RUNS.entries()].map(([sessionId, handle]) => ({
+    sessionId,
+    startedAt: Date.now(),
+    isStreaming: handle.isStreaming(),
+    isCompacting: handle.isCompacting(),
+    ...handle.getInfo?.(),
+  }));
+}
+
+export function denyEmbeddedPiRunTools(runId: string, reason?: string): boolean {
+  const id = runId.trim();
+  if (!id) {
+    return false;
+  }
+  DENIED_EMBEDDED_RUN_IDS.set(id, reason);
+  let notified = false;
+  for (const handle of ACTIVE_EMBEDDED_RUNS.values()) {
+    const info = handle.getInfo?.();
+    if (info?.runId !== id) {
+      continue;
+    }
+    handle.denyTools?.(reason);
+    notified = true;
+  }
+  return notified || DENIED_EMBEDDED_RUN_IDS.has(id);
+}
+
+export function isEmbeddedPiRunToolsDenied(runId: string): boolean {
+  return DENIED_EMBEDDED_RUN_IDS.has(runId);
+}
+
+export function getDeniedEmbeddedRunIds(): Set<string> {
+  return new Set(DENIED_EMBEDDED_RUN_IDS.keys());
+}
+
+export function clearEmbeddedPiRunToolDeny(runId: string): void {
+  DENIED_EMBEDDED_RUN_IDS.delete(runId);
 }
 
 export function getActiveEmbeddedRunCount(): number {
@@ -237,6 +293,10 @@ export function clearActiveEmbeddedRun(
 ) {
   if (ACTIVE_EMBEDDED_RUNS.get(sessionId) === handle) {
     ACTIVE_EMBEDDED_RUNS.delete(sessionId);
+    const runId = handle.getInfo?.().runId;
+    if (runId) {
+      DENIED_EMBEDDED_RUN_IDS.delete(runId);
+    }
     logSessionStateChange({ sessionId, sessionKey, state: "idle", reason: "run_completed" });
     if (!sessionId.startsWith("probe-")) {
       diag.debug(`run cleared: sessionId=${sessionId} totalActive=${ACTIVE_EMBEDDED_RUNS.size}`);
@@ -257,6 +317,7 @@ export const __testing = {
     }
     EMBEDDED_RUN_WAITERS.clear();
     ACTIVE_EMBEDDED_RUNS.clear();
+    DENIED_EMBEDDED_RUN_IDS.clear();
   },
 };
 

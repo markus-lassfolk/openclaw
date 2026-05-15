@@ -79,6 +79,8 @@ export function subscribeEmbeddedPiSession(params: SubscribeEmbeddedPiSessionPar
     successfulCronAdds: 0,
     pendingMessagingMediaUrls: new Map(),
     deterministicApprovalPromptSent: false,
+    activeToolCall: undefined,
+    lastSideEffect: undefined,
   };
   const usageTotals = {
     input: 0,
@@ -692,6 +694,8 @@ export function subscribeEmbeddedPiSession(params: SubscribeEmbeddedPiSessionPar
     didSendViaMessagingTool: () => messagingToolSentTexts.length > 0,
     didSendDeterministicApprovalPrompt: () => state.deterministicApprovalPromptSent,
     getLastToolError: () => (state.lastToolError ? { ...state.lastToolError } : undefined),
+    getActiveToolCall: () => (state.activeToolCall ? { ...state.activeToolCall } : undefined),
+    getLastSideEffect: () => (state.lastSideEffect ? { ...state.lastSideEffect } : undefined),
     getUsageTotals,
     getCompactionCount: () => compactionCount,
     waitForCompactionRetry: () => {

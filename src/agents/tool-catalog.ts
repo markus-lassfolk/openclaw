@@ -162,6 +162,14 @@ const CORE_TOOL_DEFINITIONS: CoreToolDefinition[] = [
     includeInOpenClawGroup: true,
   },
   {
+    id: "supervision",
+    label: "supervision",
+    description: "Observe/cancel local runs",
+    sectionId: "sessions",
+    profiles: ["coding"],
+    includeInOpenClawGroup: true,
+  },
+  {
     id: "session_status",
     label: "session_status",
     description: "Session status",

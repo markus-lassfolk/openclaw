@@ -590,6 +590,13 @@ export type ToolsConfig = {
      */
     visibility?: SessionsToolsVisibility;
   };
+  /** Local agent/cron/subagent observability and emergency brake controls. */
+  supervision?: {
+    /** Enable audited supervision tool access. Default: false. */
+    enabled?: boolean;
+    /** Agent ids allowed to use supervision controls. Use ["*"] for all local agents. */
+    allowAgents?: string[];
+  };
   /** Elevated exec permissions for the host machine. */
   elevated?: {
     /** Enable or disable elevated mode (default: true). */

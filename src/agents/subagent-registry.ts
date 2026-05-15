@@ -1427,6 +1427,10 @@ export function markSubagentRunTerminated(params: {
   return updated;
 }
 
+export function listSubagentRuns(): SubagentRunRecord[] {
+  return [...getSubagentRunsSnapshotForRead(subagentRuns).values()];
+}
+
 export function listSubagentRunsForRequester(
   requesterSessionKey: string,
   options?: { requesterRunId?: string },

@@ -77,6 +77,8 @@ export type EmbeddedPiSubscribeState = {
   successfulCronAdds: number;
   pendingMessagingMediaUrls: Map<string, string[]>;
   deterministicApprovalPromptSent: boolean;
+  activeToolCall?: { name?: string; toolCallId?: string; startedAt?: number; args?: unknown };
+  lastSideEffect?: { toolName?: string; meta?: string; error?: string; timestamp?: number };
   lastAssistant?: AgentMessage;
 };
 
@@ -157,6 +159,8 @@ export type ToolHandlerState = Pick<
   | "messagingToolSentTargets"
   | "successfulCronAdds"
   | "deterministicApprovalPromptSent"
+  | "activeToolCall"
+  | "lastSideEffect"
 >;
 
 export type ToolHandlerContext = {

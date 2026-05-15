@@ -753,6 +753,17 @@ describe("listSessionsFromStore search", () => {
     });
 
     expect(result.sessions.map((session) => session.key)).toEqual(["agent:main:cron:job-1"]);
+
+    const withRuns = listSessionsFromStore({
+      cfg: baseCfg,
+      storePath: "/tmp/sessions.json",
+      store,
+      opts: { includeCronRuns: true },
+    });
+    expect(withRuns.sessions.map((session) => session.key)).toEqual([
+      "agent:main:cron:job-1",
+      "agent:main:cron:job-1:run:run-abc",
+    ]);
   });
 
   test.each([

@@ -320,6 +320,12 @@ export const FIELD_HELP: Record<string, string> = {
     "Enables the agent_to_agent tool surface so one agent can invoke another agent at runtime. Keep off in simple deployments and enable only when orchestration value outweighs complexity.",
   "tools.agentToAgent.allow":
     "Allowlist of target agent IDs permitted for agent_to_agent calls when orchestration is enabled. Use explicit allowlists to avoid uncontrolled cross-agent call graphs.",
+  "tools.supervision":
+    "Audited local supervision controls for observing and cancelling local agent, cron, and subagent runs. Disabled by default.",
+  "tools.supervision.enabled":
+    "Enable the supervision tool. Grants local observability and emergency brake operations only to allowed agents.",
+  "tools.supervision.allowAgents":
+    "Agent IDs allowed to use supervision controls, for example ['main'] for Maeve or ['*'] for any local agent.",
   "tools.elevated":
     "Elevated tool access controls for privileged command surfaces that should only be reachable from trusted senders. Keep disabled unless operator workflows explicitly require elevated actions.",
   "tools.elevated.enabled":
